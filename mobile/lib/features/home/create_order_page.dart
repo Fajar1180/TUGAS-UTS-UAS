@@ -4,14 +4,19 @@ import 'package:intl/intl.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../../core/models/order_model.dart';
+import '../../core/models/provider_model.dart';
 import 'order_providers.dart';
 
 class CreateOrderPage extends ConsumerStatefulWidget {
   final int providerId;
+  final int categoryId;
+  final List<ProviderService> services;
 
   const CreateOrderPage({
     super.key,
     required this.providerId,
+    required this.categoryId,
+    required this.services,
   });
 
   @override
@@ -24,6 +29,16 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
   final _notesCtrl = TextEditingController();
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
+  ProviderService? _selectedService;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set default ke service pertama jika ada
+    if (widget.services.isNotEmpty) {
+      _selectedService = widget.services.first;
+    }
+  }
 
   @override
   void dispose() {
@@ -74,6 +89,15 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
       );
       return;
     }
+    if (_selectedService == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih layanan'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     final scheduleAt = DateTime(
       _selectedDate!.year,
@@ -83,11 +107,17 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
       _selectedTime!.minute,
     );
 
+    // Format ke Y-m-d H:i:s untuk backend
+    final scheduleAtFormatted = DateFormat('yyyy-MM-dd HH:mm:ss').format(scheduleAt);
+
     final request = CreateOrderRequest(
       providerId: widget.providerId,
+      categoryId: widget.categoryId,
+      providerServiceId: _selectedService!.id,
       address: _addressCtrl.text.trim(),
       notes: _notesCtrl.text.trim(),
-      scheduleAt: scheduleAt.toIso8601String(),
+      scheduleAt: scheduleAtFormatted,
+      estimatedPrice: _selectedService!.basePrice,
     );
 
     final success = await ref
@@ -133,6 +163,30 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                 'Detail Order',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
+              const SizedBox(height: 24),
+
+              // Pilih Layanan
+              Text(
+                'Pilih Layanan',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              if (widget.services.isNotEmpty)
+                DropdownButton<ProviderService>(
+                  isExpanded: true,
+                  value: _selectedService,
+                  items: widget.services.map((service) {
+                    return DropdownMenuItem(
+                      value: service,
+                      child: Text('${service.name} - Rp${service.basePrice}/${service.priceUnit}'),
+                    );
+                  }).toList(),
+                  onChanged: (ProviderService? newService) {
+                    setState(() => _selectedService = newService);
+                  },
+                )
+              else
+                const Text('Tidak ada layanan tersedia'),
               const SizedBox(height: 24),
 
               // Alamat

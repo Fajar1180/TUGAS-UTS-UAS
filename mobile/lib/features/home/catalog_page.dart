@@ -170,7 +170,7 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
               itemCount: providers.length,
               itemBuilder: (context, index) {
                 final provider = providers[index];
-                return _buildProviderCard(context, provider);
+                return _buildProviderCard(context, provider, categoryId);
               },
             ),
           ],
@@ -209,7 +209,7 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
               itemCount: providers.length,
               itemBuilder: (context, index) {
                 final provider = providers[index];
-                return _buildProviderCard(context, provider);
+                return _buildProviderCard(context, provider, 0);
               },
             ),
           ],
@@ -218,7 +218,7 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
     );
   }
 
-  Widget _buildProviderCard(BuildContext context, dynamic provider) {
+  Widget _buildProviderCard(BuildContext context, dynamic provider, int categoryId) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
@@ -246,8 +246,10 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) =>
-                  ProviderDetailPage(providerId: provider.id),
+              builder: (_) => ProviderDetailPage(
+                providerId: provider.id,
+                categoryId: categoryId,
+              ),
             ),
           );
         },

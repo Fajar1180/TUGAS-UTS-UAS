@@ -85,32 +85,43 @@ class OrdersResponse {
 
 class CreateOrderRequest {
   final int providerId;
-  final int categoryId;
+  final int? categoryId;
   final int? providerServiceId;
   final String scheduleAt;
   final String address;
   final String? notes;
-  final int estimatedPrice;
+  final int? estimatedPrice;
 
   CreateOrderRequest({
     required this.providerId,
-    required this.categoryId,
+    this.categoryId,
     this.providerServiceId,
     required this.scheduleAt,
     required this.address,
     this.notes,
-    required this.estimatedPrice,
+    this.estimatedPrice,
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    final data = <String, dynamic>{
       'provider_id': providerId,
-      'category_id': categoryId,
-      'provider_service_id': providerServiceId,
       'schedule_at': scheduleAt,
       'address': address,
-      'notes': notes,
-      'estimated_price': estimatedPrice,
     };
+    
+    if (categoryId != null) {
+      data['category_id'] = categoryId!;
+    }
+    if (providerServiceId != null) {
+      data['provider_service_id'] = providerServiceId!;
+    }
+    if (notes != null) {
+      data['notes'] = notes!;
+    }
+    if (estimatedPrice != null) {
+      data['estimated_price'] = estimatedPrice!;
+    }
+    
+    return data;
   }
 }

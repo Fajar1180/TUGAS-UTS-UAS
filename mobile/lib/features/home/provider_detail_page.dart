@@ -5,10 +5,12 @@ import 'create_order_page.dart';
 
 class ProviderDetailPage extends ConsumerWidget {
   final int providerId;
+  final int categoryId;
 
   const ProviderDetailPage({
     super.key,
     required this.providerId,
+    required this.categoryId,
   });
 
   @override
@@ -160,8 +162,11 @@ class ProviderDetailPage extends ConsumerWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) =>
-                              CreateOrderPage(providerId: providerId),
+                          builder: (_) => CreateOrderPage(
+                            providerId: providerId,
+                            categoryId: categoryId,
+                            services: provider.services,
+                          ),
                         ),
                       );
                     },
