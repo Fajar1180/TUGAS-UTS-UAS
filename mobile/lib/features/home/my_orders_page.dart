@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../auth/auth_controller.dart';
 import 'order_providers.dart';
 import 'order_detail_page.dart';
 
@@ -10,6 +11,7 @@ class MyOrdersPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(myOrdersProvider);
+    final authState = ref.watch(authControllerProvider);
 
     return ordersAsync.when(
       loading: () =>
@@ -41,7 +43,11 @@ class MyOrdersPage extends ConsumerWidget {
                     color: Colors.grey[300],
                   ),
                   const SizedBox(height: 16),
-                  const Text('Belum ada order'),
+                  Text(
+                    authState.userRole == 'PROVIDER'
+                        ? 'Tidak ada order masuk'
+                        : 'Belum ada pemesanan',
+                  ),
                 ],
               ),
             ),
@@ -50,9 +56,30 @@ class MyOrdersPage extends ConsumerWidget {
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: orders.length,
+          itemCount: orders.length + 1,
           itemBuilder: (context, index) {
-            final order = orders[index];
+            if (index == 0) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    authState.userRole == 'PROVIDER'
+                        ? 'Order Masuk'
+                        : 'Pesanan Saya',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    authState.userRole == 'PROVIDER'
+                        ? 'Kelola order dari pelanggan'
+                        : 'Riwayat pesanan Anda',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              );
+            }
+            final order = orders[index - 1];
             return _buildOrderCard(context, order);
           },
         );

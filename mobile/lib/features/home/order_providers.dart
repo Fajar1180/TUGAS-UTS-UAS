@@ -72,3 +72,90 @@ class CreateOrderController extends StateNotifier<CreateOrderState> {
     state = const CreateOrderState();
   }
 }
+
+// Order action controller (untuk provider accept/start/complete)
+final orderActionControllerProvider = StateNotifierProvider<OrderActionController, OrderActionState>((ref) {
+  return OrderActionController(ref);
+});
+
+class OrderActionState {
+  final bool isLoading;
+  final String? errorMessage;
+  final bool success;
+
+  const OrderActionState({
+    this.isLoading = false,
+    this.errorMessage,
+    this.success = false,
+  });
+
+  OrderActionState copyWith({
+    bool? isLoading,
+    String? errorMessage,
+    bool? success,
+  }) {
+    return OrderActionState(
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage,
+      success: success ?? this.success,
+    );
+  }
+}
+
+class OrderActionController extends StateNotifier<OrderActionState> {
+  OrderActionController(this._ref) : super(const OrderActionState());
+
+  final Ref _ref;
+
+  Future<bool> respondToOrder(int orderId, String action) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final apiService = _ref.read(apiServiceProvider);
+      await apiService.respondToOrder(orderId: orderId, action: action);
+      state = state.copyWith(isLoading: false, success: true);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed: $e',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> startWork(int orderId) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final apiService = _ref.read(apiServiceProvider);
+      await apiService.startWork(orderId);
+      state = state.copyWith(isLoading: false, success: true);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed: $e',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> completeOrder(int orderId, int finalPrice) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final apiService = _ref.read(apiServiceProvider);
+      await apiService.completeOrder(orderId: orderId, finalPrice: finalPrice);
+      state = state.copyWith(isLoading: false, success: true);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed: $e',
+      );
+      return false;
+    }
+  }
+
+  void reset() {
+    state = const OrderActionState();
+  }
+}
