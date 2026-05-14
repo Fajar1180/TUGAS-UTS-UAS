@@ -77,6 +77,12 @@ class CatalogController extends Controller
   {
     $query = $request->query('q', '');
 
+    if (empty($query)) {
+      return response()->json([
+        'message' => 'Query parameter q is required.',
+      ], 400);
+    }
+
     $providers = ProviderProfile::where('is_verified', true)
       ->where(function ($q) use ($query) {
         $q->where('business_name', 'like', "%$query%")

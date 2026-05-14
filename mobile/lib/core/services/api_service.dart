@@ -61,7 +61,11 @@ class ApiService {
           'password': password,
         },
       );
-      return AuthResponse.fromJson(response.data);
+      final authResponse = AuthResponse.fromJson(response.data);
+      if (authResponse.token != null) {
+        setToken(authResponse.token!);
+      }
+      return authResponse;
     } catch (e) {
       rethrow;
     }
