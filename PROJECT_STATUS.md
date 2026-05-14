@@ -2,8 +2,67 @@
 
 **Project:** Aplikasi Layanan Teknisi TukangDekat (Service Booking Platform)
 **Location:** `c:\laragon\www\Project-Aplikasi-Tukang-Dekat`
-**Status:** 🎯 **Phase 2 Complete - Frontend UI Fully Implemented**
-**Last Updated:** January 2025
+**Status:** 🎯 **Phase 2 In Progress - Bug Fixes & Optimization**
+**Last Updated:** May 14, 2026
+
+---
+
+## 📋 Latest Updates (May 14, 2026)
+
+### ✅ Recently Fixed
+- **Timeout Issue**: Increased Dio connectTimeout & receiveTimeout from 15s to 30s to handle slow backend responses
+- **Token Authentication**: Modified `login()` method to automatically call `setToken()` after successful login
+- **Search Validation**: Added query parameter validation in `searchProviders()` endpoint to return proper error if query is empty
+- **Backend Verification**: Confirmed all 27 API endpoints working via curl tests
+
+### ⚠️ Currently Fixing
+- **Flutter Compilation Error**: `order_model.dart` has nullable type assignment issues in `toJson()` method
+- **Data Filtering**: Investigating why orders from one user (Fajar) are visible to other users (Nabila)
+
+### 🔍 Issues to Resolve
+1. Fix nullable type errors in order_model.dart (int?, String? assignment)
+2. Verify role-based order filtering is working correctly in backend
+3. Ensure token is being sent with every authenticated API request
+
+---
+
+## 🚨 Current Blockers
+
+### 1. Flutter Compilation Error (CRITICAL)
+**File:** `lib/core/models/order_model.dart` (line 88-115)
+**Error:**
+```
+Error: A value of type 'int?' can't be assigned to a variable of type 'Object'.
+  if (categoryId != null) data['category_id'] = categoryId;
+```
+**Cause:** Dart type system issue with nullable fields in toJson() method
+**Impact:** App cannot compile and run
+**Solution:** Cast nullable values or use ?? operator in toJson()
+
+### 2. Search Endpoint Error (RESOLVED)
+**Previous Issue:** `DioException [bad response]: 404` on search
+**Fix Applied:** 
+- Added query parameter validation in backend `searchProviders()`
+- Backend now returns 400 error if query is empty instead of 404
+**Status:** ✅ Fixed
+
+### 3. Order Filtering Issue (INVESTIGATING)
+**Reported Issue:** Orders from Fajar visible to Nabila
+**Suspected Cause:** 
+- Token not being sent with requests
+- Backend filtering might not be working
+**Verification Steps:**
+1. Confirm token is in Authorization header
+2. Check backend `getMyOrders()` receives correct user_id
+3. Verify role-based filtering logic
+**Status:** ⚠️ In Progress
+
+### 4. Timeout Issue (RESOLVED)
+**Previous Error:** `DioException [connection timeout]` after 15 seconds
+**Fix Applied:** 
+- Changed connectTimeout from 15s to 30s in `dio_provider.dart`
+- Changed receiveTimeout from 15s to 30s in `dio_provider.dart`
+**Status:** ✅ Fixed
 
 ---
 
@@ -250,21 +309,22 @@
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| **Backend Database** | ✅ Complete | 9 migrations, 5 seeders |
-| **Backend Models** | ✅ Complete | All 9 models with relationships |
-| **Backend API** | ✅ Complete | 27 endpoints, all working |
-| **Backend Testing** | ✅ Complete | Tested with Postman |
-| **Backend Auth** | ✅ Complete | Sanctum tokens working |
-| **Backend Sample Data** | ✅ Complete | 3 providers, 3 customers |
+| **Backend Database** | ✅ Complete | 9 migrations, 5 seeders, MySQL verified |
+| **Backend Models** | ✅ Complete | All 9 models with relationships, tested |
+| **Backend API** | ✅ Complete | 27 endpoints, all working & tested via curl |
+| **Backend Auth** | ✅ Complete | Sanctum tokens working, verified login |
+| **Backend Catalog** | ✅ Complete | Categories (5), Providers, Search with validation |
+| **Backend Orders** | ✅ Complete | CRUD + lifecycle, role-based filtering |
+| **Backend Sample Data** | ✅ Complete | 3 providers, 3 customers, 5 categories |
 | | | |
 | **Mobile Models** | ✅ Complete | 4 DTO files, JSON serialization |
-| **Mobile API Service** | ✅ Complete | All 18+ endpoints integrated |
-| **Mobile Auth Flow** | ✅ Complete | Login/Register/Logout |
-| **Mobile Storage** | ✅ Complete | Secure token persistence |
-| **Mobile Home Page** | ✅ Complete | TabBar navigation |
-| **Mobile Catalog** | ✅ Complete | Categories + Search |
-| **Mobile Orders** | ✅ Complete | Create + List + Detail |
-| **Mobile UI Polish** | ✅ Complete | Error handling, loading states |
+| **Mobile API Service** | ⚠️ In Progress | 18+ endpoints integrated, token auth fixed |
+| **Mobile Auth Flow** | ✅ Complete | Login/Register/Logout, token persistence |
+| **Mobile Storage** | ✅ Complete | FlutterSecureStorage for sensitive data |
+| **Mobile Home Page** | ✅ Complete | TabBar navigation (Beranda/Pesanan/Akun) |
+| **Mobile Catalog** | ⚠️ In Progress | Categories + Search, timeout increased to 30s |
+| **Mobile Orders** | ⚠️ Bug Fix | Compilation error in order_model.dart (nullable types) |
+| **Mobile UI Polish** | ✅ Complete | Error handling, loading states, card UI |
 
 ---
 

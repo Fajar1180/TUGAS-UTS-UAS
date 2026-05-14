@@ -58,6 +58,8 @@ class CreateOrderController extends StateNotifier<CreateOrderState> {
         isLoading: false,
         createdOrder: order,
       );
+      // Refresh myOrdersProvider to show newly created order
+      _ref.refresh(myOrdersProvider); // ignore: unused_result
       return true;
     } catch (e) {
       state = state.copyWith(
@@ -113,6 +115,8 @@ class OrderActionController extends StateNotifier<OrderActionState> {
       final apiService = _ref.read(apiServiceProvider);
       await apiService.respondToOrder(orderId: orderId, action: action);
       state = state.copyWith(isLoading: false, success: true);
+      // Refresh orders after responding
+      _ref.refresh(myOrdersProvider); // ignore: unused_result
       return true;
     } catch (e) {
       state = state.copyWith(
@@ -129,6 +133,8 @@ class OrderActionController extends StateNotifier<OrderActionState> {
       final apiService = _ref.read(apiServiceProvider);
       await apiService.startWork(orderId);
       state = state.copyWith(isLoading: false, success: true);
+      // Refresh orders after starting work
+      _ref.refresh(myOrdersProvider); // ignore: unused_result
       return true;
     } catch (e) {
       state = state.copyWith(
@@ -145,6 +151,8 @@ class OrderActionController extends StateNotifier<OrderActionState> {
       final apiService = _ref.read(apiServiceProvider);
       await apiService.completeOrder(orderId: orderId, finalPrice: finalPrice);
       state = state.copyWith(isLoading: false, success: true);
+      // Refresh orders after completing
+      _ref.refresh(myOrdersProvider); // ignore: unused_result
       return true;
     } catch (e) {
       state = state.copyWith(

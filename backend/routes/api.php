@@ -18,8 +18,8 @@ Route::prefix('auth')->group(function () {
 Route::prefix('catalog')->group(function () {
     Route::get('/categories', [CatalogController::class, 'getCategories']);
     Route::get('/categories/{categoryId}/providers', [CatalogController::class, 'getProvidersByCategory']);
-    Route::get('/providers/{providerId}', [CatalogController::class, 'getProviderDetail']);
     Route::get('/providers/search', [CatalogController::class, 'searchProviders']);
+    Route::get('/providers/{providerId}', [CatalogController::class, 'getProviderDetail']);
 });
 
 // Protected routes (require authentication)

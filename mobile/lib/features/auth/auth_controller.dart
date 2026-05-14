@@ -131,10 +131,13 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       final apiService = _ref.read(apiServiceProvider);
       await apiService.logout();
+      apiService.clearToken();
       await _ref.read(authStorageProvider).clearAll();
       state = const AuthState(isLoading: false);
     } catch (e) {
       // Even if logout fails on server, clear local data
+      final apiService = _ref.read(apiServiceProvider);
+      apiService.clearToken();
       await _ref.read(authStorageProvider).clearAll();
       state = const AuthState(isLoading: false);
     }
