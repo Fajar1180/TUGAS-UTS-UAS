@@ -39,6 +39,13 @@ class TestPayoutGateway extends Command
     $this->info('Hasil:');
     $this->line(json_encode($res, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
+    $errorCode = data_get($res, 'meta.error_code') ?: data_get($res, 'meta.errorCode');
+    if ($errorCode === 'REQUEST_FORBIDDEN_ERROR') {
+      $this->warn('Key valid, tapi akun/API key belum punya izin untuk endpoint payout/disbursement. Aktifkan akses disbursement di dashboard Xendit atau minta permission ke Xendit support.');
+    } elseif ($errorCode === 'INVALID_API_KEY') {
+      $this->warn('API key tidak valid. Pastikan yang dipakai adalah secret sandbox key, bukan public key.');
+    }
+
     return 0;
   }
 }
