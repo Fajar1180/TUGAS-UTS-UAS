@@ -57,3 +57,30 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Project Notes
+
+This project includes treasurer reporting, provider payout aggregation, payout dispatch jobs, attempt logging, and export support for CSV/XLS/XLSX.
+
+The temporary `/test-login/{role}` helper has been removed. Use the real authentication flow in production.
+
+### Scheduler
+
+The scheduler is configured in `bootstrap/app.php`:
+
+- `payouts:process` runs daily at `01:00`.
+- `payouts:process-pending --limit=25` runs every 5 minutes.
+
+For production servers, add one cron entry to run Laravel's scheduler every minute:
+
+```bash
+* * * * * cd /path/to/Project-Aplikasi-Tukang-Dekat/backend && php artisan schedule:run >> /dev/null 2>&1
+```
+
+### Useful commands
+
+```bash
+php artisan payouts:process
+php artisan payouts:process-pending --limit=25
+php artisan schedule:list
+```
