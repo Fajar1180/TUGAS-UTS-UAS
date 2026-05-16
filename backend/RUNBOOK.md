@@ -58,6 +58,11 @@ sudo cp deploy/laravel-queue.service /etc/systemd/system/laravel-queue.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now laravel-queue.service
 sudo journalctl -u laravel-queue -f
+
+Alerting:
+
+- Configure `PAYOUT_ALERT_WEBHOOK` or `PAYOUT_ALERT_EMAIL` in `.env` to receive alerts when failed payouts occur frequently.
+- The app schedules `payouts:alert --since=60` every 10 minutes by default.
 ```
 
 6) Manual operations

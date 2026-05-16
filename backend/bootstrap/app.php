@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('payouts:process')->dailyAt('01:00')->withoutOverlapping();
         $schedule->command('payouts:process-pending --limit=25')->everyFiveMinutes()->withoutOverlapping();
+        $schedule->command('payouts:alert --since=60')->everyTenMinutes()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
