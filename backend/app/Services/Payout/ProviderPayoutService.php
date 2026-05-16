@@ -19,6 +19,22 @@ class ProviderPayoutService
    */
   public function process(ProviderPayout $payout, array $options = []): ProviderPayoutAttempt
   {
+    // Prevent processing if max attempts reached
+    $max = (int) config('payout.max_attempts', 3);
+    $existing = $payout->attempts()->count();
+    if ($existing >= $max) {
+      $payout->status = 'FAILED';
+      $payout->error_message = 'max attempts reached';
+      $payout->save();
+
+      // create a final failed attempt record
+      return ProviderPayoutAttempt::create([
+        'provider_payout_id' => $payout->id,
+        'status' => 'FAILED',
+        'error_message' => 'max attempts reached',
+      ]);
+    }
+
     // create attempt record
     $attempt = ProviderPayoutAttempt::create([
       'provider_payout_id' => $payout->id,

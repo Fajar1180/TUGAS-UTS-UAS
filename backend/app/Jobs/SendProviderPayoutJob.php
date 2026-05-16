@@ -16,6 +16,10 @@ class SendProviderPayoutJob implements ShouldQueue
 {
   use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+  // Let the worker retry a few times with backoff
+  public int $tries = 5;
+  public int $backoff = 60; // seconds
+
   public int $payoutId;
   public array $options;
 
@@ -27,18 +31,25 @@ class SendProviderPayoutJob implements ShouldQueue
 
   public function handle()
   {
-    $p = ProviderPayout::find($this->payoutId);
-    if (!$p) return;
-    if ($p->status !== 'PENDING') return;
+    try {
+      $p = ProviderPayout::find($this->payoutId);
+      if (!$p) return;
+      if ($p->status !== 'PENDING') return;
 
-    // Resolve gateway from container if bound, otherwise fallback to Mock
-    if (app()->bound(PayoutGatewayInterface::class)) {
-      $gateway = app(PayoutGatewayInterface::class);
-    } else {
-      $gateway = new MockPayoutGateway();
+      // Resolve gateway from container if bound, otherwise fallback to Mock
+      if (app()->bound(PayoutGatewayInterface::class)) {
+        $gateway = app(PayoutGatewayInterface::class);
+      } else {
+        $gateway = new MockPayoutGateway();
+      }
+
+      $service = new ProviderPayoutService($gateway);
+      $service->process($p, $this->options);
+    } catch (\Throwable $e) {
+      // If job failed due to unexpected exception, mark attempt record (if any)
+      \Log::error('SendProviderPayoutJob error: ' . $e->getMessage(), ['payoutId' => $this->payoutId]);
+      // rethrow to let queue worker handle retries according to $tries
+      throw $e;
     }
-
-    $service = new ProviderPayoutService($gateway);
-    $service->process($p, $this->options);
   }
 }
