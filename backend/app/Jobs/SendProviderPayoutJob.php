@@ -17,17 +17,32 @@ class SendProviderPayoutJob implements ShouldQueue
   use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
   // Let the worker retry a few times with backoff
-  public int $tries = 5;
-  public int $backoff = 60; // seconds
-
-  public int $payoutId;
-  public array $options;
+  public int $tries;
 
   public function __construct(int $payoutId, array $options = [])
   {
     $this->payoutId = $payoutId;
     $this->options = $options;
+    $this->tries = (int) config('payout.max_attempts', 3) + 1; // allow one extra for finalization
   }
+
+  /**
+   * Dynamic backoff based on attempt count (exponential, capped)
+   */
+  public function backoff()
+  {
+    try {
+      $p = ProviderPayout::find($this->payoutId);
+      $attempts = $p ? $p->attempts()->count() : 0;
+    } catch (\Throwable $e) {
+      $attempts = 0;
+    }
+
+    $seconds = (int) (pow(2, max(0, $attempts - 1)) * 60); // 1m,2m,4m,8m...
+    return min($seconds, 3600); // cap to 1 hour
+  }
+  public int $payoutId;
+  public array $options;
 
   public function handle()
   {

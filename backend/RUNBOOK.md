@@ -81,6 +81,8 @@ SELECT * FROM provider_payout_attempts WHERE status = 'FAILED' ORDER BY created_
 
 - Retry failed payout from admin UI or via `SendProviderPayoutJob` dispatch.
 
+- Export failed attempts to CSV: `php artisan payouts:export-failed --since=60 --email=ops@example.com`
+
 8) Rollback
 
 - If a deploy causes issues, revert to previous git tag/commit and run migrations rollback only if safe.

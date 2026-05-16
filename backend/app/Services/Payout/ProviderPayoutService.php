@@ -68,9 +68,22 @@ class ProviderPayoutService
       $attempt->meta = $res['meta'] ?? null;
       $attempt->save();
 
-      $payout->status = 'FAILED';
+      // If reached max attempts, mark payout as permanently failed
+      $total = $payout->attempts()->count();
+      if ($total >= $max) {
+        $payout->status = 'FAILED';
+        $payout->error_message = $res['error'] ?? null;
+        $payout->save();
+        return $attempt;
+      }
+
+      // Otherwise keep payout PENDING so job retries can attempt again.
+      $payout->status = 'PENDING';
       $payout->error_message = $res['error'] ?? null;
       $payout->save();
+
+      // Throw to let the queue worker retry according to job backoff/tries
+      throw new \RuntimeException('Gateway send failed: ' . ($res['error'] ?? 'failed'));
     }
 
     return $attempt;
