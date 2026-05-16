@@ -59,7 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/providers/{providerId}/verification', [AdminController::class, 'updateVerification']);
     });
 
-    // Treasurer
+    // Treasurer (API for web requests)
     Route::prefix('treasurer')->group(function () {
         Route::get('/payments/report', [TreasurerController::class, 'paymentReport']);
     });

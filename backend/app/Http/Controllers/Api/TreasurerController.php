@@ -11,11 +11,19 @@ class TreasurerController extends Controller
 {
   private function ensureTreasurer(): ?\Illuminate\Http\JsonResponse
   {
-    $user = Auth::user();
+    // Check web session auth (web routes use web guard) or Sanctum token (API routes)
+    $user = Auth::user() ?? Auth::guard('web')->user();
+    if (!$user) {
+      \Log::error('No user found in TreasurerController.ensureTreasurer');
+      \Log::error('Auth::user: ' . (Auth::user() ? 'found' : 'null'));
+      \Log::error('Auth guard web: ' . (Auth::guard('web')->user() ? 'found' : 'null'));
+    }
 
     if (!$user || $user->role !== 'TREASURER') {
       return response()->json([
         'message' => 'only treasurer can access this resource',
+        'debug_user' => $user ? $user->email : null,
+        'debug_role' => $user ? $user->role : null,
       ], 403);
     }
 
@@ -147,6 +155,84 @@ class TreasurerController extends Controller
       };
 
       return response()->streamDownload($callback, $filename, $headers);
+    }
+
+    // Jika diminta ekspor XLS (SpreadsheetML/XML) tanpa membutuhkan ekstensi zip
+    if ($request->query('export') === 'xls' || $request->query('export') === 'excel') {
+      $exportQuery = (clone $query)->latest()->get();
+      $filename = 'treasurer_payments_' . now()->format('Ymd_His') . '.xls';
+
+      $escape = function ($v) {
+        if (is_null($v)) return '';
+        return htmlspecialchars((string) $v, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+      };
+
+      $xml = '<?xml version="1.0"?>' . "\n";
+      $xml .= '<?mso-application progid="Excel.Sheet"?>' . "\n";
+      $xml .= '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">' . "\n";
+      $xml .= "  <Worksheet ss:Name=\"Payments\">\n    <Table>\n";
+
+      // headers
+      $headers = [
+        'payment_id',
+        'order_id',
+        'payment_type',
+        'status',
+        'amount',
+        'platform_fee',
+        'provider_payout',
+        'refund_amount',
+        'refund_status',
+        'payment_reference',
+        'customer',
+        'provider',
+        'created_at',
+        'updated_at'
+      ];
+      $xml .= "      <Row>\n";
+      foreach ($headers as $h) {
+        $xml .= "        <Cell><Data ss:Type=\"String\">" . $escape($h) . "</Data></Cell>\n";
+      }
+      $xml .= "      </Row>\n";
+
+      foreach ($exportQuery as $p) {
+        $customerName = optional($p->order->customer)->name ?? optional($p->order->customer)->email ?? '';
+        $providerName = optional($p->order->provider)->name ?? optional($p->order->provider)->email ?? '';
+
+        $xml .= "      <Row>\n";
+        $cols = [
+          $p->id,
+          $p->order_id,
+          $p->payment_type,
+          $p->status,
+          $p->amount,
+          $p->platform_fee,
+          $p->provider_payout,
+          $p->refund_amount,
+          $p->refund_status,
+          $p->payment_reference ?? '',
+          $customerName,
+          $providerName,
+          $p->created_at->toDateTimeString(),
+          $p->updated_at->toDateTimeString(),
+        ];
+
+        foreach ($cols as $c) {
+          // detect numeric
+          $type = is_numeric($c) ? 'Number' : 'String';
+          $xml .= "        <Cell><Data ss:Type=\"{$type}\">" . $escape($c) . "</Data></Cell>\n";
+        }
+        $xml .= "      </Row>\n";
+      }
+
+      $xml .= "    </Table>\n  </Worksheet>\n</Workbook>";
+
+      $headers = [
+        'Content-Type' => 'application/vnd.ms-excel; charset=utf-8',
+        'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+      ];
+
+      return response($xml, 200, $headers);
     }
 
     return response()->json([

@@ -16,6 +16,6 @@ class TreasurerWebController extends Controller
       abort(403, 'only treasurer can access this page');
     }
 
-    return view('admin.treasurer.report');
+    return view('admin.treasurer.report_standalone');
   }
 }
