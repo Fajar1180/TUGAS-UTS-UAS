@@ -52,7 +52,7 @@ class AuthController extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final apiService = _ref.read(apiServiceProvider);
-      final response = await apiService.register(
+      await apiService.register(
         name: name,
         email: email,
         phone: phone,

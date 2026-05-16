@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/api_service.dart';
 import '../../core/models/category_model.dart';
 import '../../core/models/provider_model.dart';
+import '../../core/models/review_model.dart';
 
 // Categories provider
 final categoriesProvider = FutureProvider<List<ServiceCategory>>((ref) async {
@@ -23,6 +24,13 @@ final providerDetailProvider =
     FutureProvider.family<ProviderProfile, int>((ref, providerId) async {
   final apiService = ref.read(apiServiceProvider);
   return await apiService.getProviderDetail(providerId);
+});
+
+// Provider reviews
+final providerReviewsProvider =
+    FutureProvider.family<ReviewsResponse, int>((ref, providerId) async {
+  final apiService = ref.read(apiServiceProvider);
+  return await apiService.getProviderReviews(providerId);
 });
 
 // Search providers

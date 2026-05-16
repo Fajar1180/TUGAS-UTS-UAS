@@ -46,6 +46,7 @@ class PaymentData {
   final String status;
   final String? externalPaymentId;
   final String? paidAt;
+  final String? checkoutUrl;
 
   PaymentData({
     required this.id,
@@ -54,6 +55,7 @@ class PaymentData {
     required this.status,
     this.externalPaymentId,
     this.paidAt,
+    this.checkoutUrl,
   });
 
   factory PaymentData.fromJson(Map<String, dynamic> json) {
@@ -64,6 +66,7 @@ class PaymentData {
       status: json['status'] ?? 'UNPAID',
       externalPaymentId: json['external_payment_id'],
       paidAt: json['paid_at'],
+      checkoutUrl: json['checkout_url'],
     );
   }
 }

@@ -5,6 +5,7 @@
 ✅ **Backend**: All 27 API endpoints verified working
 ✅ **Frontend**: Riverpod refresh logic implemented
 ✅ **Compilation**: No errors, warnings suppressed
+✅ **Payments**: QRIS flow is gateway-ready with webhook signature verification and simulation fallback
 
 ## What Was Fixed
 
@@ -57,7 +58,8 @@ Added `_ref.refresh(myOrdersProvider)` to 4 critical methods:
    - ✅ UI refreshes immediately
 5. **Start Work**: After accepted, tap → Mulai Pekerjaan
 6. **Verify**:
-   - ✅ Status changes to IN_PROGRESS
+   - ✅ DP payment must already be PAID
+   - ✅ Status changes to IN_PROGRESS only after payment is confirmed
    - ✅ UI refreshes immediately
 7. **Complete Work**: After started, tap → Selesaikan Pekerjaan
 8. **Verify**:
@@ -115,6 +117,140 @@ curl -X GET http://localhost:8000/api/orders/my-orders \
 # Expected: Array with 3 orders (id: 1, 2, 3)
 ```
 
+## n8n Notification Hooks
+
+If `N8N_WEBHOOK_URL` is configured in `backend/.env`, the backend will also send event payloads to n8n and store a log row in `notification_logs`.
+
+### Events Sent
+- `order_created`
+- `order_accepted`
+- `order_rejected`
+- `work_started`
+- `order_completed`
+- `payment_dp_paid`
+- `payment_final_paid`
+
+### Required Env
+```bash
+N8N_WEBHOOK_URL=https://your-n8n-domain/webhook/...
+N8N_WEBHOOK_SECRET=optional-shared-secret
+```
+
+### Payload Shape
+Each request includes:
+- `event_name`
+- `channel`
+- `payload`
+- `sent_at`
+
+The webhook handler also records the notification result as `SENT`, `FAILED`, or `SKIPPED`.
+
+## Payment Flow
+
+### Current Behavior
+- `POST /api/payments/{paymentId}/generate-qris` now mendukung mode `simulation` dan `midtrans`.
+- Jika `PAYMENT_GATEWAY_DRIVER=midtrans`, backend akan kirim transaksi Snap Midtrans dengan pembayaran `qris`.
+- Jika credential belum ada, endpoint tetap fallback ke payload simulasi agar testing lokal tidak terhenti.
+- `POST /api/webhooks/payment` memverifikasi signature Midtrans dengan rumus `sha512(order_id + status_code + gross_amount + server_key)`.
+- Provider tidak bisa mulai kerja sebelum DP benar-benar berstatus `PAID`.
+
+### Required Env
+```bash
+PAYMENT_GATEWAY_DRIVER=midtrans
+MIDTRANS_SERVER_KEY=YOUR_SERVER_KEY
+MIDTRANS_CLIENT_KEY=YOUR_CLIENT_KEY
+MIDTRANS_IS_PRODUCTION=false
+```
+
+### Notes
+- Untuk local testing, boleh tetap pakai `PAYMENT_GATEWAY_DRIVER=simulation`.
+- Saat pindah ke Midtrans asli, isi `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, lalu set `MIDTRANS_IS_PRODUCTION` sesuai environment.
+- Pada mobile, `checkout_url` dari response bisa langsung dibuka untuk pembayaran QRIS Midtrans.
+
+## Finance Policy
+
+### Commission & Settlement
+- `PLATFORM_COMMISSION_PERCENT` menentukan potongan platform dari setiap payment yang berhasil dibayar.
+- Backend menyimpan `commission_percent`, `platform_fee`, `provider_payout`, dan `settlement_status` di tabel `payments`.
+- Saat payment berstatus `PAID`, backend otomatis menghitung payout provider dan menandai settlement sebagai `READY`.
+
+### Refund Policy
+- `DP_REFUND_PERCENT` menentukan berapa persen DP yang dikembalikan saat order dibatalkan sebelum pengerjaan.
+- Jika order berstatus `CANCELLED` dan DP sudah dibayar, backend menandai refund sebagai `REQUESTED`.
+- Data refund tersimpan di field `refund_amount`, `refund_status`, `refund_reason`, dan `refund_requested_at`.
+
+## Treasurer Payment Report
+
+### Endpoint
+```bash
+GET /api/treasurer/payments/report
+```
+
+### Access
+- Hanya user dengan role `TREASURER` yang bisa akses endpoint ini.
+
+### Query Parameters
+- `start_date` — filter dari tanggal `YYYY-MM-DD`
+- `end_date` — filter sampai tanggal `YYYY-MM-DD`
+- `status` — `UNPAID`, `PENDING`, `PAID`, `FAILED`, `EXPIRED`
+- `payment_type` — `DP` atau `FINAL`
+- `order_id` — filter transaksi per order
+- `provider_id` — filter transaksi per provider
+- `per_page` — jumlah data per halaman, default 20
+
+### Response Ringkas
+- `summary.total_payments`
+- `summary.total_amount`
+- `summary.total_paid_amount`
+- `summary.total_platform_fee`
+- `summary.total_provider_payout`
+- `summary.total_refund_amount`
+- `breakdown.by_status`
+- `breakdown.by_type`
+- `data` berisi daftar payment detail yang sudah di-`paginate`
+
+### Contoh Curl
+```bash
+curl -X GET "http://localhost:8000/api/treasurer/payments/report?start_date=2026-05-01&end_date=2026-05-31&status=PAID&per_page=10" \
+   -H "Authorization: Bearer YOUR_TREASURER_TOKEN"
+```
+
+## Review Flow
+
+### Test Review as Customer
+1. Login as a customer.
+2. Open an order with status `COMPLETED` or `CLOSED`.
+3. Tap **Tulis Ulasan**.
+4. Choose a rating and add an optional comment.
+5. Verify:
+   - ✅ Review is saved through `POST /api/reviews/order/{orderId}`
+   - ✅ The order detail page now shows your submitted review
+   - ✅ The provider detail page shows the updated average rating and review list
+
+### Review API Endpoints
+- `POST /api/reviews/order/{orderId}`
+- `GET /api/reviews/order/{orderId}`
+- `GET /api/reviews/provider/{providerId}`
+
+## Admin Verification Flow
+
+### Setup
+Use an account with `role = ADMIN`. If no admin user exists yet, create one with tinker or seed data.
+
+### Test Admin UI
+1. Login as admin.
+2. Open the new **Admin** tab in the home screen.
+3. Verify the list only shows providers with `is_verified = false`.
+4. Tap **Verifikasi** on one provider.
+5. Verify:
+   - ✅ Provider status changes to verified in backend
+   - ✅ Provider is removed from the pending list
+   - ✅ Event `provider_verified` is sent to `n8n` if configured
+
+### Admin API Endpoints
+- `GET /api/admin/providers/pending`
+- `PATCH /api/admin/providers/{providerId}/verification`
+
 ## Expected Results
 
 | Test | Before Fix | After Fix |
@@ -126,7 +262,7 @@ curl -X GET http://localhost:8000/api/orders/my-orders \
 | Manual refresh | ⚠️ Required workaround | ❌ Not needed anymore |
 
 ## Known Limitations (If Any)
-- None identified at this time
+- Integrasi gateway real sudah siap untuk Midtrans, tapi credential production belum diisi di repo.
 
 ## Rollback Instructions
 If issues occur, revert [lib/features/home/order_providers.dart](lib/features/home/order_providers.dart) to remove `_ref.refresh(myOrdersProvider)` calls from all 4 methods.

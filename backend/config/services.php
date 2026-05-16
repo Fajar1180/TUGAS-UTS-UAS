@@ -35,4 +35,22 @@ return [
         ],
     ],
 
+    'n8n' => [
+        'webhook_url' => env('N8N_WEBHOOK_URL'),
+        'secret' => env('N8N_WEBHOOK_SECRET'),
+    ],
+
+    'payments' => [
+        'driver' => env('PAYMENT_GATEWAY_DRIVER', 'simulation'),
+        'charge_url' => env('PAYMENT_GATEWAY_CHARGE_URL'),
+        'api_token' => env('PAYMENT_GATEWAY_API_TOKEN'),
+        'webhook_secret' => env('PAYMENT_GATEWAY_WEBHOOK_SECRET'),
+        'webhook_signature_header' => env('PAYMENT_GATEWAY_SIGNATURE_HEADER', 'X-Payment-Signature'),
+        'platform_commission_percent' => env('PLATFORM_COMMISSION_PERCENT', 10),
+        'dp_refund_percent' => env('DP_REFUND_PERCENT', 100),
+        'midtrans_server_key' => env('MIDTRANS_SERVER_KEY'),
+        'midtrans_client_key' => env('MIDTRANS_CLIENT_KEY'),
+        'midtrans_is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+    ],
+
 ];

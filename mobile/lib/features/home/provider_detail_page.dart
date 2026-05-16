@@ -16,6 +16,7 @@ class ProviderDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final providerAsync = ref.watch(providerDetailProvider(providerId));
+    final reviewsAsync = ref.watch(providerReviewsProvider(providerId));
 
     return Scaffold(
       appBar: AppBar(
@@ -64,7 +65,7 @@ class ProviderDetailPage extends ConsumerWidget {
                                           size: 16, color: Colors.amber),
                                       const SizedBox(width: 4),
                                       Text(
-                                        '${provider.avgRating ?? 0.0} ⭐',
+                                        '${provider.avgRating} ⭐',
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyMedium,
@@ -154,6 +155,81 @@ class ProviderDetailPage extends ConsumerWidget {
                       const SizedBox(height: 24),
                     ],
                   ),
+
+                const SizedBox(height: 16),
+
+                reviewsAsync.when(
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  error: (err, st) => const SizedBox.shrink(),
+                  data: (reviewsResponse) {
+                    final reviews = reviewsResponse.data;
+                    if (reviews.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ulasan Pelanggan',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: reviews.length,
+                          itemBuilder: (context, index) {
+                            final review = reviews[index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          review.customerName ?? 'Pelanggan',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Row(
+                                          children: List.generate(5, (starIndex) {
+                                            return Icon(
+                                              starIndex < review.rating
+                                                  ? Icons.star
+                                                  : Icons.star_border,
+                                              size: 16,
+                                              color: Colors.amber,
+                                            );
+                                          }),
+                                        ),
+                                      ],
+                                    ),
+                                    if ((review.comment ?? '').isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Text(review.comment!),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    );
+                  },
+                ),
 
                 // CTA Button
                 SizedBox(

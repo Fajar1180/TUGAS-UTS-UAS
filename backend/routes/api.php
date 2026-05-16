@@ -3,9 +3,11 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\TreasurerController;
 use App\Http\Controllers\Api\ReviewController;
 
 // Public routes (authentication)
@@ -49,6 +51,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/order/{orderId}', [ReviewController::class, 'createReview']);
         Route::get('/provider/{providerId}', [ReviewController::class, 'getProviderReviews']);
         Route::get('/order/{orderId}', [ReviewController::class, 'getOrderReview']);
+    });
+
+    // Admin
+    Route::prefix('admin')->group(function () {
+        Route::get('/providers/pending', [AdminController::class, 'getPendingProviders']);
+        Route::patch('/providers/{providerId}/verification', [AdminController::class, 'updateVerification']);
+    });
+
+    // Treasurer
+    Route::prefix('treasurer')->group(function () {
+        Route::get('/payments/report', [TreasurerController::class, 'paymentReport']);
     });
 });
 

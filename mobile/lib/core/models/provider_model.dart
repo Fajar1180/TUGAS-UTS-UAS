@@ -26,7 +26,9 @@ class ProviderService {
 
 class ProviderProfile {
   final int id;
+  final int? userId;
   final String businessName;
+  final String? ownerName;
   final String? description;
   final String? area;
   final String? address;
@@ -36,7 +38,9 @@ class ProviderProfile {
 
   ProviderProfile({
     required this.id,
+    this.userId,
     required this.businessName,
+    this.ownerName,
     this.description,
     this.area,
     this.address,
@@ -46,9 +50,13 @@ class ProviderProfile {
   });
 
   factory ProviderProfile.fromJson(Map<String, dynamic> json) {
+    final user = json['user'];
+
     return ProviderProfile(
       id: json['id'] ?? 0,
+      userId: json['user_id'],
       businessName: json['business_name'] ?? '',
+      ownerName: user is Map<String, dynamic> ? user['name'] : null,
       description: json['description'],
       area: json['area'],
       address: json['address'],

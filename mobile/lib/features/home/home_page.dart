@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_page.dart';
-import 'catalog_providers.dart';
+import '../admin/admin_verification_page.dart';
 import 'catalog_page.dart';
 import 'my_orders_page.dart';
 
@@ -12,19 +12,26 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(authControllerProvider);
+    final isAdmin = state.userRole == 'ADMIN';
+    final tabs = [
+      const Tab(icon: Icon(Icons.home), text: 'Beranda'),
+      const Tab(icon: Icon(Icons.receipt_long), text: 'Pesanan'),
+      if (isAdmin) const Tab(icon: Icon(Icons.verified_user), text: 'Admin'),
+      const Tab(icon: Icon(Icons.account_circle), text: 'Akun'),
+    ];
+    final pages = [
+      const CatalogPage(),
+      const MyOrdersPage(),
+      if (isAdmin) const AdminVerificationPage(),
+      _buildAccountTab(context, state),
+    ];
 
     return DefaultTabController(
-      length: 3,
+      length: tabs.length,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('TukangDekat'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.home), text: 'Beranda'),
-              Tab(icon: Icon(Icons.receipt_long), text: 'Pesanan'),
-              Tab(icon: Icon(Icons.account_circle), text: 'Akun'),
-            ],
-          ),
+          bottom: TabBar(tabs: tabs),
           actions: [
             IconButton(
               tooltip: 'Logout',
@@ -41,11 +48,7 @@ class HomePage extends ConsumerWidget {
           ],
         ),
         body: TabBarView(
-          children: [
-            const CatalogPage(),
-            const MyOrdersPage(),
-            _buildAccountTab(context, state),
-          ],
+          children: pages,
         ),
       ),
     );

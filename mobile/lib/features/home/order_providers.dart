@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/api_service.dart';
 import '../../core/models/order_model.dart';
+import '../../core/models/review_model.dart';
 
 // My orders provider
 final myOrdersProvider = FutureProvider<List<OrderData>>((ref) async {
@@ -13,6 +14,11 @@ final myOrdersProvider = FutureProvider<List<OrderData>>((ref) async {
 final orderDetailProvider = FutureProvider.family<OrderData, int>((ref, orderId) async {
   final apiService = ref.read(apiServiceProvider);
   return await apiService.getOrderDetail(orderId);
+});
+
+final orderReviewProvider = FutureProvider.family<ReviewData?, int>((ref, orderId) async {
+  final apiService = ref.read(apiServiceProvider);
+  return await apiService.getOrderReview(orderId);
 });
 
 // Create order controller

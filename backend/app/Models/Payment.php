@@ -14,6 +14,15 @@ class Payment extends Model
     'order_id',
     'payment_type',
     'amount',
+    'commission_percent',
+    'platform_fee',
+    'provider_payout',
+    'settlement_status',
+    'settled_at',
+    'refund_amount',
+    'refund_status',
+    'refund_reason',
+    'refund_requested_at',
     'status',
     'provider',
     'external_payment_id',
@@ -22,7 +31,13 @@ class Payment extends Model
 
   protected $casts = [
     'amount' => 'integer',
+    'commission_percent' => 'integer',
+    'platform_fee' => 'integer',
+    'provider_payout' => 'integer',
     'paid_at' => 'datetime',
+    'settled_at' => 'datetime',
+    'refund_amount' => 'integer',
+    'refund_requested_at' => 'datetime',
   ];
 
   public function order(): BelongsTo

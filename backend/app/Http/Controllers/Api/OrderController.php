@@ -5,11 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\PaymentFinanceService;
+use App\Services\N8nNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
+  public function __construct(
+    private readonly PaymentFinanceService $paymentFinanceService,
+  ) {}
+
   /**
    * Buat order baru
    */
@@ -53,6 +59,16 @@ class OrderController extends Controller
       'payment_type' => 'DP',
       'amount' => $dpAmount,
       'status' => 'UNPAID',
+    ]);
+
+    app(N8nNotificationService::class)->dispatch('order_created', [
+      'order_id' => $order->id,
+      'order_code' => $order->order_code,
+      'customer_id' => $order->customer_id,
+      'provider_id' => $order->provider_id,
+      'estimated_price' => $order->estimated_price,
+      'dp_amount' => $dpAmount,
+      'status' => $order->status,
     ]);
 
     return response()->json([
@@ -146,12 +162,40 @@ class OrderController extends Controller
 
     if ($validated['action'] === 'accept') {
       $order->update(['status' => 'ACCEPTED']);
+
+      app(N8nNotificationService::class)->dispatch('order_accepted', [
+        'order_id' => $order->id,
+        'order_code' => $order->order_code,
+        'provider_id' => $order->provider_id,
+        'status' => $order->status,
+      ]);
+
       return response()->json([
         'message' => 'order accepted',
         'data' => ['status' => $order->status],
       ], 200);
     } else {
       $order->update(['status' => 'CANCELLED']);
+
+      $refundPayments = $order->payments()
+        ->where('payment_type', 'DP')
+        ->where('status', 'PAID')
+        ->get();
+
+      foreach ($refundPayments as $refundPayment) {
+        $refundPayment->update(
+          $this->paymentFinanceService->applyRefundPolicy($refundPayment, $order, 'order_rejected')
+        );
+      }
+
+      app(N8nNotificationService::class)->dispatch('order_rejected', [
+        'order_id' => $order->id,
+        'order_code' => $order->order_code,
+        'provider_id' => $order->provider_id,
+        'status' => $order->status,
+        'refund_count' => $refundPayments->count(),
+      ]);
+
       return response()->json([
         'message' => 'order rejected',
         'data' => ['status' => $order->status],
@@ -186,15 +230,21 @@ class OrderController extends Controller
       ], 403);
     }
 
-    // Check apakah DP sudah dibayar
     $dpPayment = $order->payments()->where('payment_type', 'DP')->first();
     if (!$dpPayment || $dpPayment->status !== 'PAID') {
       return response()->json([
-        'message' => 'dp payment not completed',
-      ], 400);
+        'message' => 'dp payment must be paid before work can start',
+      ], 422);
     }
 
     $order->update(['status' => 'IN_PROGRESS']);
+
+    app(N8nNotificationService::class)->dispatch('work_started', [
+      'order_id' => $order->id,
+      'order_code' => $order->order_code,
+      'provider_id' => $order->provider_id,
+      'status' => $order->status,
+    ]);
 
     return response()->json([
       'message' => 'work started',
@@ -245,6 +295,15 @@ class OrderController extends Controller
       'payment_type' => 'FINAL',
       'amount' => $finalAmount,
       'status' => 'UNPAID',
+    ]);
+
+    app(N8nNotificationService::class)->dispatch('order_completed', [
+      'order_id' => $order->id,
+      'order_code' => $order->order_code,
+      'provider_id' => $order->provider_id,
+      'final_price' => $validated['final_price'],
+      'final_amount' => $finalAmount,
+      'status' => $order->status,
     ]);
 
     return response()->json([

@@ -4,12 +4,18 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
-use App\Models\Order;
-use App\Models\NotificationLog;
+use App\Services\PaymentGatewayService;
+use App\Services\PaymentFinanceService;
+use App\Services\N8nNotificationService;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
+  public function __construct(
+    private readonly PaymentGatewayService $paymentGatewayService,
+    private readonly PaymentFinanceService $paymentFinanceService,
+  ) {}
+
   /**
    * Get payment untuk order
    */
@@ -23,12 +29,11 @@ class PaymentController extends Controller
   }
 
   /**
-   * Generate QRIS untuk payment (simulasi)
-   * Di production, ini akan memanggil payment gateway seperti Midtrans/Xendit
+   * Generate QRIS untuk payment
    */
   public function generateQRIS(Request $request, $paymentId)
   {
-    $payment = Payment::find($paymentId);
+    $payment = Payment::with(['order.customer', 'order.provider'])->find($paymentId);
 
     if (!$payment) {
       return response()->json([
@@ -36,14 +41,13 @@ class PaymentController extends Controller
       ], 404);
     }
 
-    // Simulasi generate QRIS
-    $qrisData = [
-      'payment_id' => $payment->id,
-      'amount' => $payment->amount,
-      'payment_type' => $payment->payment_type,
-      'qris_code' => 'https://api.qris.example.com/qr?id=' . $payment->id,
-      'qris_image' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-    ];
+    $qrisData = $this->paymentGatewayService->generateQrisPayload($payment);
+
+    $payment->update([
+      'provider' => $qrisData['provider'] ?? $payment->provider,
+      'external_payment_id' => $qrisData['reference'] ?? $payment->external_payment_id,
+      'status' => $payment->status === 'UNPAID' ? 'PENDING' : $payment->status,
+    ]);
 
     return response()->json([
       'data' => $qrisData,
@@ -56,58 +60,55 @@ class PaymentController extends Controller
    */
   public function webhookPaymentCallback(Request $request)
   {
+    if (!$this->paymentGatewayService->verifyWebhook($request)) {
+      return response()->json(['message' => 'invalid signature'], 403);
+    }
+
     $data = $request->all();
 
-    // TODO: Verifikasi signature dari payment gateway
+    $paymentId = $data['payment_id'] ?? data_get($data, 'metadata.payment_id');
+    $externalPaymentId = $data['transaction_id'] ?? $data['reference'] ?? $data['order_id'] ?? $data['external_payment_id'] ?? null;
+    $status = $data['status'] ?? $data['transaction_status'] ?? $data['payment_status'] ?? null;
 
-    $paymentId = $data['payment_id'] ?? null;
-    $externalPaymentId = $data['transaction_id'] ?? null;
-    $status = $data['status'] ?? null; // 'success', 'pending', 'failed'
-
-    if (!$paymentId) {
+    if (!$paymentId && !$externalPaymentId) {
       return response()->json(['message' => 'invalid payload'], 400);
     }
 
-    $payment = Payment::find($paymentId);
+    $payment = Payment::when($paymentId, function ($query) use ($paymentId) {
+      $query->where('id', $paymentId);
+    }, function ($query) use ($externalPaymentId) {
+      $query->where('external_payment_id', $externalPaymentId);
+    })->first();
 
     if (!$payment) {
       return response()->json(['message' => 'payment not found'], 404);
     }
 
-    // Map status dari gateway ke status lokal
-    $statusMap = [
-      'success' => 'PAID',
-      'pending' => 'PENDING',
-      'failed' => 'FAILED',
-    ];
-
-    $newStatus = $statusMap[$status] ?? 'PENDING';
+    $newStatus = $this->paymentGatewayService->mapStatus($status);
 
     $payment->update([
       'status' => $newStatus,
       'external_payment_id' => $externalPaymentId,
-      'paid_at' => ($newStatus === 'PAID') ? now() : null,
+      'provider' => $payment->provider ?: strtoupper(config('services.payments.driver', 'simulation')),
+      'paid_at' => ($newStatus === 'PAID') ? now() : $payment->paid_at,
     ]);
 
     // Jika payment berhasil, update order status
     if ($newStatus === 'PAID') {
+      $payment->update($this->paymentFinanceService->applySettlementSnapshot($payment));
+
       $order = $payment->order;
 
-      // Jika DP sudah dibayar dan order masih CREATED, ubah ke ACCEPTED (opsional)
-      // Atau biarkan provider menerima order secara manual
-
-      // Log notifikasi
-      NotificationLog::create([
-        'event_name' => 'payment_' . strtolower($payment->payment_type) . '_paid',
-        'channel' => 'WA', // Akan dihandle oleh n8n
-        'payload_json' => json_encode([
+      app(N8nNotificationService::class)->dispatch(
+        'payment_' . strtolower($payment->payment_type) . '_paid',
+        [
           'order_id' => $order->id,
+          'payment_id' => $payment->id,
           'payment_type' => $payment->payment_type,
           'amount' => $payment->amount,
-        ]),
-        'status' => 'SENT',
-        'sent_at' => now(),
-      ]);
+          'order_status' => $order->status,
+        ]
+      );
 
       // Jika FINAL payment sudah dibayar, tutup order
       if ($payment->payment_type === 'FINAL') {
@@ -123,7 +124,7 @@ class PaymentController extends Controller
    */
   public function getPaymentStatus($paymentId)
   {
-    $payment = Payment::find($paymentId);
+    $payment = Payment::with(['order.customer', 'order.provider'])->find($paymentId);
 
     if (!$payment) {
       return response()->json([

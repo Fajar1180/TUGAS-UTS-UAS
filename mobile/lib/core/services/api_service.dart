@@ -4,22 +4,20 @@ import '../models/auth_response.dart';
 import '../models/category_model.dart';
 import '../models/provider_model.dart';
 import '../models/order_model.dart';
+import '../models/review_model.dart';
 import '../http/dio_provider.dart';
 
 class ApiService {
   final Dio dio;
-  String? _token;
 
   ApiService({required this.dio});
 
   // Setter untuk token
   void setToken(String token) {
-    _token = token;
     dio.options.headers['Authorization'] = 'Bearer $token';
   }
 
   void clearToken() {
-    _token = null;
     dio.options.headers.remove('Authorization');
   }
 
@@ -192,11 +190,31 @@ class ApiService {
 
   // ===== PAYMENT ENDPOINTS =====
 
-  Future<PaymentData> generateQRIS(int paymentId) async {
+  /// Generate QRIS for a payment. Returns QRIS payload from backend.
+  Future<Map<String, dynamic>> generateQRIS(int paymentId) async {
     try {
       final response =
           await dio.post('/api/payments/$paymentId/generate-qris');
-      return PaymentData.fromJson(response.data['data']);
+      final data = Map<String, dynamic>.from(response.data['data'] ?? {});
+      final checkoutUrl = data['checkout_url'];
+      if (checkoutUrl != null) {
+        data['checkout_url'] = checkoutUrl.toString();
+      }
+      return data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Simulate payment gateway callback (for testing)
+  /// In production, payment gateway will call /webhooks/payment
+  Future<void> simulatePaymentCallback(int paymentId) async {
+    try {
+      await dio.post('/webhooks/payment', data: {
+        'payment_id': paymentId,
+        'transaction_id': 'SIM-$paymentId',
+        'status': 'success',
+      });
     } catch (e) {
       rethrow;
     }
@@ -231,11 +249,47 @@ class ApiService {
     }
   }
 
-  Future<ProvidersResponse> getProviderReviews(int providerId) async {
+  Future<ReviewsResponse> getProviderReviews(int providerId) async {
     try {
       final response =
           await dio.get('/api/reviews/provider/$providerId');
+      return ReviewsResponse.fromJson(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<ReviewData?> getOrderReview(int orderId) async {
+    try {
+      final response = await dio.get('/api/reviews/order/$orderId');
+      return ReviewData.fromJson(
+        Map<String, dynamic>.from(response.data['data']),
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ===== ADMIN ENDPOINTS =====
+
+  Future<ProvidersResponse> getPendingProviders() async {
+    try {
+      final response = await dio.get('/api/admin/providers/pending');
       return ProvidersResponse.fromJson(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateProviderVerification({
+    required int providerId,
+    required bool isVerified,
+  }) async {
+    try {
+      await dio.patch(
+        '/api/admin/providers/$providerId/verification',
+        data: {'is_verified': isVerified},
+      );
     } catch (e) {
       rethrow;
     }
