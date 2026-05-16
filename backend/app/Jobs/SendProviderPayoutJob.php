@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\ProviderPayout;
 use App\Services\Payout\ProviderPayoutService;
+use App\Services\Payout\PayoutGatewayInterface;
 use App\Services\Payout\MockPayoutGateway;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,8 +31,13 @@ class SendProviderPayoutJob implements ShouldQueue
     if (!$p) return;
     if ($p->status !== 'PENDING') return;
 
-    // use mock gateway by default; in future bind real gateway in service container
-    $gateway = new MockPayoutGateway();
+    // Resolve gateway from container if bound, otherwise fallback to Mock
+    if (app()->bound(PayoutGatewayInterface::class)) {
+      $gateway = app(PayoutGatewayInterface::class);
+    } else {
+      $gateway = new MockPayoutGateway();
+    }
+
     $service = new ProviderPayoutService($gateway);
     $service->process($p, $this->options);
   }
