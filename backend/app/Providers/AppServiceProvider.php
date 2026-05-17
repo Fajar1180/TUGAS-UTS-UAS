@@ -16,12 +16,14 @@ class AppServiceProvider extends ServiceProvider
     {
         // Bind payout gateway implementation based on environment
         $this->app->singleton(PayoutGatewayInterface::class, function ($app) {
-            $xenditKey = env('XENDIT_API_KEY');
-            if (!empty($xenditKey)) {
+            $configured = config('payout.gateway', env('PAYOUT_GATEWAY', 'mock'));
+
+            if ($configured === 'xendit') {
+                $xenditKey = env('XENDIT_API_KEY');
                 return new XenditPayoutGateway($xenditKey, env('XENDIT_BASE_URL', 'https://api.xendit.co'));
             }
 
-            // Fallback to mock gateway for local/dev
+            // Default to mock gateway
             return new MockPayoutGateway();
         });
     }
