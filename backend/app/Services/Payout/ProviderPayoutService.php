@@ -19,6 +19,22 @@ class ProviderPayoutService
    */
   public function process(ProviderPayout $payout, array $options = []): ProviderPayoutAttempt
   {
+    // Prevent processing if max attempts reached
+    $max = (int) config('payout.max_attempts', 3);
+    $existing = $payout->attempts()->count();
+    if ($existing >= $max) {
+      $payout->status = 'FAILED';
+      $payout->error_message = 'max attempts reached';
+      $payout->save();
+
+      // create a final failed attempt record
+      return ProviderPayoutAttempt::create([
+        'provider_payout_id' => $payout->id,
+        'status' => 'FAILED',
+        'error_message' => 'max attempts reached',
+      ]);
+    }
+
     // create attempt record
     $attempt = ProviderPayoutAttempt::create([
       'provider_payout_id' => $payout->id,
@@ -52,9 +68,22 @@ class ProviderPayoutService
       $attempt->meta = $res['meta'] ?? null;
       $attempt->save();
 
-      $payout->status = 'FAILED';
+      // If reached max attempts, mark payout as permanently failed
+      $total = $payout->attempts()->count();
+      if ($total >= $max) {
+        $payout->status = 'FAILED';
+        $payout->error_message = $res['error'] ?? null;
+        $payout->save();
+        return $attempt;
+      }
+
+      // Otherwise keep payout PENDING so job retries can attempt again.
+      $payout->status = 'PENDING';
       $payout->error_message = $res['error'] ?? null;
       $payout->save();
+
+      // Throw to let the queue worker retry according to job backoff/tries
+      throw new \RuntimeException('Gateway send failed: ' . ($res['error'] ?? 'failed'));
     }
 
     return $attempt;
