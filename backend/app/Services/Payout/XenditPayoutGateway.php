@@ -17,7 +17,7 @@ class XenditPayoutGateway implements PayoutGatewayInterface
   protected string $baseUrl;
   protected string $disbursementPath;
 
-  public function __construct(string $apiKey, string $baseUrl = 'https://api.xendit.co')
+  public function __construct(string $apiKey, string $baseUrl = 'https://api.xendit.com')
   {
     $this->apiKey = $apiKey;
     $this->baseUrl = rtrim($baseUrl, '/');
