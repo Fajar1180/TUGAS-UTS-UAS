@@ -21,6 +21,11 @@ if [[ -z "$XENDIT_KEY" ]]; then
   exit 1
 fi
 
+if [[ "$XENDIT_KEY" == xnd_public_* ]]; then
+  echo "Key yang dimasukkan adalah public key. Untuk request server-to-server Xendit, kamu harus memakai secret key sandbox (biasanya berawalan xnd_development_ atau format secret key yang ditampilkan di dashboard)."
+  exit 1
+fi
+
 if [[ "$XENDIT_KEY" != xnd_development_* ]]; then
   echo "Peringatan: key tidak berawalan xnd_development_. Lanjut jika memang benar."
 fi
@@ -39,13 +44,8 @@ upsert_env() {
 upsert_env "XENDIT_API_KEY" "$XENDIT_KEY"
 upsert_env "PAYOUT_GATEWAY" "xendit"
 
-echo "Menulis ke user environment Windows (setx XENDIT_API_KEY) ..."
-if command -v powershell.exe >/dev/null 2>&1; then
-  powershell.exe -NoProfile -Command "[Environment]::SetEnvironmentVariable('XENDIT_API_KEY','$XENDIT_KEY','User')" >/dev/null
-  echo "User env Windows diperbarui."
-else
-  echo "powershell.exe tidak ditemukan, skip update user env."
-fi
+echo "Catatan: skrip ini hanya menulis ke .env supaya tidak ada key Windows user env yang menimpa konfigurasi lokal."
+echo "Jika sebelumnya pernah menjalankan setx XENDIT_API_KEY, hapus dulu dari Environment Variables Windows atau tutup semua terminal lalu buka terminal baru."
 
 echo "Menjalankan verifikasi gateway..."
 cd "$ROOT_DIR"
