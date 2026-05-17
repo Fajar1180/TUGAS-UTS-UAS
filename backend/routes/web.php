@@ -22,7 +22,6 @@ use App\Http\Controllers\Admin\ProviderPayoutController;
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/admin/treasurer/payments', [TreasurerWebController::class, 'index'])->name('admin.treasurer.report');
-    Route::get('/api/treasurer/payments/report', [TreasurerController::class, 'paymentReport'])->name('api.treasurer.report');
 
     // Provider payouts UI + actions
     Route::get('/admin/treasurer/provider-payouts', [ProviderPayoutController::class, 'index'])->name('admin.treasurer.provider_payouts');
@@ -78,4 +77,8 @@ Route::middleware(['auth'])->group(function () {
 
         return redirect()->back()->with('status', 'Payouts processed');
     })->name('admin.treasurer.process_payouts');
+});
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/api/treasurer/payments/report', [TreasurerController::class, 'paymentReport'])->name('api.treasurer.report');
 });
