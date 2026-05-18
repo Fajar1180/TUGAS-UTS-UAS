@@ -57,6 +57,6 @@ class XenditPayoutGatewayTest extends TestCase
 
         $this->assertFalse($res['success']);
         $this->assertArrayHasKey('meta', $res);
-+        $this->assertSame('REQUEST_FORBIDDEN_ERROR', data_get($res, 'meta.error_code'));
+        $this->assertSame('REQUEST_FORBIDDEN_ERROR', data_get($res, 'meta.error_code'));
     }
 }
