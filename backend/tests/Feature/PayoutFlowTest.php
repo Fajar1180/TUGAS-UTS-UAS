@@ -15,7 +15,7 @@ class PayoutFlowTest extends TestCase
 {
   use RefreshDatabase;
 
-  /** @test */
+  #[\PHPUnit\Framework\Attributes\Test]
   public function aggregation_command_runs()
   {
     // create sample paid payment row directly to avoid missing factories

@@ -13,7 +13,7 @@ class PayoutRetryTest extends TestCase
 {
   use RefreshDatabase;
 
-  /** @test */
+  #[\PHPUnit\Framework\Attributes\Test]
   public function payout_retries_until_max_attempts_and_then_fails()
   {
     // create minimal user/order/payment as in other test
