@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class TreasurerController extends Controller
 {
@@ -14,9 +15,9 @@ class TreasurerController extends Controller
     // Check web session auth (web routes use web guard) or Sanctum token (API routes)
     $user = Auth::user() ?? Auth::guard('web')->user();
     if (!$user) {
-      \Log::error('No user found in TreasurerController.ensureTreasurer');
-      \Log::error('Auth::user: ' . (Auth::user() ? 'found' : 'null'));
-      \Log::error('Auth guard web: ' . (Auth::guard('web')->user() ? 'found' : 'null'));
+      Log::error('No user found in TreasurerController.ensureTreasurer');
+      Log::error('Auth::user: ' . (Auth::user() ? 'found' : 'null'));
+      Log::error('Auth guard web: ' . (Auth::guard('web')->user() ? 'found' : 'null'));
     }
 
     if (!$user || $user->role !== 'TREASURER') {

@@ -1,29 +1,36 @@
-E2E Playwright tests for backend treasurer export
+<!-- markdownlint-disable -->
 
-Setup:
-1. Install Node.js (>=16) and npm.
-2. From the `backend/e2e` folder run:
+E2E Playwright untuk fitur export bendahara (treasurer)
 
-   npm install
+Persiapan:
 
-3. Configure environment variables (optional):
+1. Instal Node.js (>=16) dan npm.
+2. Dari folder `backend/e2e` jalankan:
+
+```bash
+npm install
+```
+
+3. Konfigurasi environment (opsional):
    - `PLAYWRIGHT_BASE_URL` (default: http://localhost)
-   - `TEST_TOKEN` - a Bearer token for an authenticated treasurer user (required for the CSV test)
+   - `TEST_TOKEN` - Bearer token untuk user `TREASURER` (dibutuhkan untuk test CSV)
 
-Run tests:
+Menjalankan test:
 
-   npm test
+```bash
+npm test
+```
 
-Notes:
-- The test `treasurer-export.spec.js` calls the API endpoint `/api/treasurer/payments/report?export=csv` and requires an authenticated token.
-- You can create a test treasurer user and generate a token via Laravel Sanctum or your app's token endpoint, then set `TEST_TOKEN` before running tests.
+Catatan:
+- Test `treasurer-export.spec.js` memanggil endpoint `/api/treasurer/payments/report?export=csv` dan membutuhkan token autentikasi.
+- Anda bisa membuat user treasurer test dan menghasilkan token via Laravel Sanctum atau endpoint token aplikasi, lalu set `TEST_TOKEN` sebelum menjalankan test.
 
-Quick token helper:
+Helper token cepat:
 
-From the `backend` folder you can run the included Artisan command to create/find a `TREASURER` user and emit a token:
+Dari folder `backend` jalankan Artisan command untuk membuat/mencari user `TREASURER` dan mencetak token:
 
 ```bash
 php artisan test:make-token --save
 ```
 
-This will create the user `test.treasurer@example.com` (if missing), print the `TEST_TOKEN` and save it to `backend/e2e/.env` when `--save` is provided.
+Command ini akan membuat user `test.treasurer@example.com` (jika belum ada), mencetak `TEST_TOKEN`, dan menyimpannya ke `backend/e2e/.env` bila opsi `--save` digunakan.
