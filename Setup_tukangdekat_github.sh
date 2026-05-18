@@ -155,30 +155,51 @@ create_issue() {
   local milestone_keyword="$5"
 
   local ms_title=$(get_milestone "$milestone_keyword")
-  local ms_flag=""
-  [[ -n "$ms_title" ]] && ms_flag="--milestone $ms_title"
+  
+  # Create temporary file for body (to handle complex text with newlines)
+  local body_file=$(mktemp)
+  printf '%b' "$body" > "$body_file"
 
-  gh issue create \
-    --repo "$REPO" \
-    --title "$title" \
-    --body "$body" \
-    --label "$labels" \
-    --assignee "$assignees" \
-    $ms_flag \
-    > /dev/null 2>&1 \
-    && echo -e "  ${GREEN}✓${NC} $title" \
-    || echo -e "  ${YELLOW}⚠${NC} Gagal: $title"
+  # Build gh command
+  local cmd=(gh issue create --repo "$REPO" --title "$title" --body-file "$body_file" --label "$labels")
+  
+  # Add assignees if provided
+  if [[ -n "$assignees" ]]; then
+    IFS=',' read -ra ASSIGNEE_ARRAY <<< "$assignees"
+    for assignee in "${ASSIGNEE_ARRAY[@]}"; do
+      assignee="${assignee//[[:space:]]/}"
+      [[ -n "$assignee" ]] && cmd+=(--assignee "$assignee")
+    done
+  fi
+  
+  # Add milestone if found
+  [[ -n "$ms_title" ]] && cmd+=(--milestone "$ms_title")
+
+  # Execute and handle result
+  if "${cmd[@]}" > /dev/null 2>&1; then
+    if [[ -n "$assignees" ]]; then
+      echo -e "  ${GREEN}✓${NC} $title"
+    else
+      echo -e "  ${GREEN}✓${NC} $title"
+    fi
+  else
+    echo -e "  ${YELLOW}⚠${NC} Gagal: $title"
+  fi
+  
+  rm -f "$body_file"
 }
 
 # NOTE: Ganti username GitHub di bawah sesuai akun masing-masing anggota
-PM="elsa-balqis"          # R.Elsa Balqis (PM)
-BE1="fajar-nurjaman"      # Muhammad Fajar Nurjaman
-BE2="nabilah-asana"       # Nabilah Asana Alecia
-BE3="fatin-asyifa"        # Fatin Asyifa Nurrizky
-FE1="tetep-safarudin"     # Tetep Safarudin
-FE2="fazna-alaisal"       # Fazna Alaisal
-FE3="nabil-ramadhan"      # Nabil Ramadhan
-QA="aldy-ramadani"        # Aldy Ramadani
+# Untuk mendapatkan username, kunjungi: https://github.com/settings/profile (lihat username)
+# Atau biarkan kosong untuk membuat issues tanpa assignee (assign nanti manual)
+PM="Fajar1180"                     # R.Elsa Balqis (PM)
+BE1="Fajar1180"                    # Muhammad Fajar Nurjaman
+BE2="Fajar1180"                    # Nabilah Asana Alecia
+BE3="Fajar1180"                    # Fatin Asyifa Nurrizky
+FE1="Fajar1180"                    # Tetep Safarudin
+FE2="Fajar1180"                    # Fazna Alaisal
+FE3="Fajar1180"                    # Nabil Ramadhan
+QA="Fajar1180"                     # Aldy Ramadani
 
 echo -e "\n  ${YELLOW}── WEEK 1: Setup & Perencanaan (11–17 Mei) ──${NC}"
 
