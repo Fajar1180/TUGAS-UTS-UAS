@@ -31,11 +31,31 @@ class PayoutMonitoringTest extends TestCase
 
         $res = $gateway->send(['amount' => 10000, 'bank_code' => 'BCA', 'account_number' => '000111222']);
 
-        $this->assertIsArray($res);
+            // debug
+            @file_put_contents(__DIR__ . '/../../storage/debug_payout_response.json', json_encode($res));
+            @file_put_contents(__DIR__ . '/../../storage/debug_payout_table.json', json_encode(\Illuminate\Support\Facades\DB::table('payout_provider_responses')->get()));
+
+            $this->assertIsArray($res);
         $this->assertFalse($res['success']);
 
-        // DB should have a record
-        $this->assertDatabaseHas('payout_provider_responses', ['provider' => 'xendit']);
+            // DB should have a record
+            // debug: try manual insert to check DB connectivity
+            try {
+                \App\Models\PayoutProviderResponse::create([
+                    'provider' => 'xendit_manual',
+                    'transaction_reference' => 'dbg_1',
+                    'path' => 'dbg',
+                    'request_body' => ['a'=>1],
+                    'response_body' => ['b'=>2],
+                    'status_code' => 500,
+                ]);
+            } catch (\Throwable $e) {
+                @file_put_contents(__DIR__ . '/../../storage/debug_payout_create_error.txt', $e->getMessage());
+            }
+
+            @file_put_contents(__DIR__ . '/../../storage/debug_payout_table_after_manual.json', json_encode(\Illuminate\Support\Facades\DB::table('payout_provider_responses')->get()));
+
+            $this->assertDatabaseHas('payout_provider_responses', ['provider' => 'xendit']);
 
         // Notification should be sent to anonymous notifiable (mail route)
         Notification::assertSentTo(new \Illuminate\Notifications\AnonymousNotifiable, PayoutFailed::class);
