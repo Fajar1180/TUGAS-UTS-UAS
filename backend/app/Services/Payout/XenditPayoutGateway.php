@@ -4,6 +4,9 @@ namespace App\Services\Payout;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use App\Models\PayoutProviderResponse;
+use App\Notifications\PayoutFailed;
 
 /**
  * Simple Xendit payout adapter scaffold.
@@ -43,6 +46,22 @@ class XenditPayoutGateway implements PayoutGatewayInterface
 
             $res = $this->attemptPathsAndVariants($paths, $variants);
 
+            // Persist provider response if available
+            if ($res) {
+                try {
+                    PayoutProviderResponse::create([
+                        'provider' => 'xendit',
+                        'transaction_reference' => $res->json()['id'] ?? ($res->json()['reference'] ?? null),
+                        'path' => $res->effectiveUri() ? (string) $res->effectiveUri() : null,
+                        'request_body' => $variants[0] ?? null,
+                        'response_body' => $res->json() ?? ['body' => $res->body()],
+                        'status_code' => $res->status(),
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning('xendit.persist_response_failed', ['err' => $e->getMessage()]);
+                }
+            }
+
             if ($res && $res->successful()) {
                 $body = $res->json();
                 return [
@@ -50,6 +69,37 @@ class XenditPayoutGateway implements PayoutGatewayInterface
                     'transaction_reference' => $body['id'] ?? ($body['reference'] ?? null),
                     'meta' => $body,
                 ];
+            }
+
+            // If provider returned non-success, trigger alert (email + DB notification)
+            if ($res) {
+                try {
+                    $reference = null;
+                    try { $reference = $res->json()['id'] ?? ($res->json()['reference'] ?? null); } catch (\Throwable $_) { $reference = null; }
+
+                    // send mail notification to configured alert email
+                    $alertEmail = env('PAYOUT_ALERT_EMAIL');
+                    if ($alertEmail) {
+                        Notification::route('mail', $alertEmail)->notify(new PayoutFailed('xendit', $reference, $res->status(), $res->json() ?? ['body' => $res->body()]));
+                    }
+
+                    // send webhook if configured
+                    $webhook = env('PAYOUT_ALERT_WEBHOOK');
+                    if ($webhook) {
+                        try {
+                            Http::post($webhook, [
+                                'provider' => 'xendit',
+                                'reference' => $reference,
+                                'status_code' => $res->status(),
+                                'response' => $res->json() ?? ['body' => $res->body()],
+                            ]);
+                        } catch (\Throwable $_) {
+                            // Ignore webhook failures
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('xendit.alert_failed', ['err' => $e->getMessage()]);
+                }
             }
 
             return [
