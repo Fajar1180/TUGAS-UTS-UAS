@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Deployment & Production Checklist
 
 This document collects the minimal, practical steps to run this Laravel app in production and operate background workers and the scheduler.

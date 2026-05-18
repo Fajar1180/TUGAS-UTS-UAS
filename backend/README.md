@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD033 MD041 -->
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
@@ -58,26 +60,26 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
-## Project Notes
+## Catatan Proyek (Ringkas)
 
-This project includes treasurer reporting, provider payout aggregation, payout dispatch jobs, attempt logging, and export support for CSV/XLS/XLSX.
+Proyek ini mencakup laporan bendahara (treasurer), agregasi payout provider, job dispatch untuk payout, pencatatan percobaan (attempt logging), dan ekspor laporan ke CSV/XLS/XLSX.
 
-The temporary `/test-login/{role}` helper has been removed. Use the real authentication flow in production.
+Helper sementara `/test-login/{role}` telah dihapus — gunakan alur autentikasi yang sebenarnya pada environment produksi.
 
-### Scheduler
+### Penjadwalan (Scheduler)
 
-The scheduler is configured in `bootstrap/app.php`:
+Beberapa tugas terjadwal:
 
-- `payouts:process` runs daily at `01:00`.
-- `payouts:process-pending --limit=25` runs every 5 minutes.
+- `payouts:process` dijadwalkan tiap hari pada pukul `01:00`.
+- `payouts:process-pending --limit=25` dijalankan setiap 5 menit.
 
-For production servers, add one cron entry to run Laravel's scheduler every minute:
+Untuk server produksi, tambahkan satu cron entry agar scheduler Laravel dijalankan setiap menit:
 
 ```bash
 * * * * * cd /path/to/Project-Aplikasi-Tukang-Dekat/backend && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-### Useful commands
+### Perintah Berguna
 
 ```bash
 php artisan payouts:process

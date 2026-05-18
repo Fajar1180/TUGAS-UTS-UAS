@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 Route::get('/', function () {
     return view('welcome');
@@ -50,7 +51,7 @@ Route::middleware(['auth'])->group(function () {
 
         $grouped = $payments->groupBy('order.provider_id');
 
-        \DB::beginTransaction();
+        DB::beginTransaction();
         try {
             foreach ($grouped as $providerId => $group) {
                 $sum = $group->sum('provider_payout');
@@ -69,9 +70,9 @@ Route::middleware(['auth'])->group(function () {
                 ]);
             }
 
-            \DB::commit();
+            DB::commit();
         } catch (\Exception $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return redirect()->back()->with('error', 'Payout processing failed: ' . $e->getMessage());
         }
 

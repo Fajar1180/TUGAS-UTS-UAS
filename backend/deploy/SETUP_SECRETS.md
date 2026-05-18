@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Setup GitHub & Runtime Secrets
 
 Daftar secret yang diperlukan untuk fitur payout, webhook, dan deploy.
@@ -71,6 +73,37 @@ php artisan payouts:test-gateway 10000 --to=08123456789
 ```
 
 If using Xendit sandbox, set `XENDIT_API_KEY` to sandbox key and `PAYOUT_GATEWAY=xendit`.
+
+### Skrip bantu untuk memasang secrets
+
+Di folder `deploy/` tersedia skrip contoh untuk memudahkan pemasangan secrets:
+
+- `set_github_secrets.sh`: gunakan `gh` CLI untuk menyimpan secrets ke GitHub Actions. Contoh:
+
+```bash
+./deploy/set_github_secrets.sh Fajar1180 Project-Aplikasi-Tukang-Dekat deploy/secrets/github_secrets.txt
+```
+
+- `set_server_env.sh`: copy file lokal KEY=VALUE ke server remote via `scp` (overwrite). Contoh:
+
+```bash
+./deploy/set_server_env.sh deploy@app.example.com /var/www/tukangdekat/backend/.env deploy/secrets/.env
+```
+
+- `ansible_set_secrets.yml`: contoh playbook Ansible yang menyalin `deploy/secrets/.env` ke server target.
+
+Gunakan skrip ini sebagai template dan sesuaikan sesuai kebijakan keamanan tim (gunakan secret manager bila memungkinkan).
+
+### Contoh file secrets
+
+Saya juga menambahkan contoh file di `deploy/secrets/`:
+
+- `github_secrets.txt.example` — contoh format KEY=VALUE untuk `set_github_secrets.sh`.
+- `.env.example` — contoh `.env` untuk server.
+- `ansible_inventory.example` — contoh inventory untuk Ansible.
+- `ANSIBLE_VAULT_README.md` — panduan singkat Ansible Vault.
+
+Isi file contoh tersebut mohon dilengkapi sebelum menjalankan skrip.
 
 Server deploy notes
 

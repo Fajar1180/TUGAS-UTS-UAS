@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 ## Deployment & Current Status
 
 Summary of current implementation and remaining actions for payout pipeline feature (branch: feature/payout-prod).

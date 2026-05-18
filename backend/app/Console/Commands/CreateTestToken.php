@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class CreateTestToken extends Command
 {
@@ -15,7 +16,7 @@ class CreateTestToken extends Command
   {
     $email = $this->argument('email');
 
-    $user = User::where('email', $email)->first();
+    $user = User::query()->where('email', $email)->first();
     if (!$user) {
       $this->info('User not found, creating new TREASURER user...');
       $user = User::create([
@@ -34,7 +35,9 @@ class CreateTestToken extends Command
 
     // revoke previous e2e tokens for clarity
     foreach ($user->tokens as $t) {
-      if (strpos($t->name, 'e2e') !== false) $t->delete();
+      if (Str::contains((string) $t->name, 'e2e')) {
+        $t->delete();
+      }
     }
 
     $token = $user->createToken('e2e-token')->plainTextToken;

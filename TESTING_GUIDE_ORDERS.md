@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Testing Guide: Orders Feature (Fixed)
 
 ## Status
