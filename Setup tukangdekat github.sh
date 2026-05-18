@@ -12,7 +12,7 @@
 # =============================================================
 
 # ─── KONFIGURASI — SESUAIKAN INI ─────────────────────────────
-REPO="radenelsa7-bot/PM_UAS_rekayasa_Sistem_Informasi"          # Ganti dengan username/repo kamu
+REPO="Fajar1180/Project-Aplikasi-Tukang-Dekat"          # Ganti dengan username/repo kamu
 PROJECT_NAME="TukangDekat – Sprint Board"
 # ─────────────────────────────────────────────────────────────
 
