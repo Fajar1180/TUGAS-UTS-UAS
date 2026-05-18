@@ -104,7 +104,24 @@ Saya juga menambahkan contoh file di `deploy/secrets/`:
 - `ANSIBLE_VAULT_README.md` — panduan singkat Ansible Vault.
 
 Isi file contoh tersebut mohon dilengkapi sebelum menjalankan skrip.
+Webhook alert (Slack)
 
+Jika Anda ingin menerima notifikasi ke channel Slack, buat Incoming Webhook di Slack dan masukkan URL-nya ke environment variable `PAYOUT_ALERT_WEBHOOK`.
+
+Contoh `.env` entry:
+
+```
+PAYOUT_ALERT_WEBHOOK=https://<your-slack-incoming-webhook-url>
+PAYOUT_ALERT_EMAIL=ops@example.com
+```
+
+Catatan: sistem mengirim payload yang diformat khusus untuk Slack jika URL mengandung `hooks.slack.com`. Notifikasi webhook dikirim melalui job queue (`SendPayoutAlertWebhook`) sehingga membutuhkan queue worker yang berjalan di server, contohnya:
+
+```
+php artisan queue:work --sleep=3 --tries=3
+```
+
+Pastikan service/systemd untuk queue worker di-restart saat deploy.
 Server deploy notes
 
 - Upload `DEPLOY_KEY` to GitHub Secrets (as `DEPLOY_KEY`) and set `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`.
